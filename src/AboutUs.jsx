@@ -1,32 +1,133 @@
 import React from 'react';
-import './AboutUs.css';
+import { useSelector, useDispatch } from 'react-redux';
+import { removeItem, updateQuantity, clearCart } from './CartSlice';
+import './CartItem.css';
 
-function AboutUs() {
+const CartItem = ({ onContinueShopping }) => {
+  const cart = useSelector(state => state.cart.items);
+  const dispatch = useDispatch();
+
+  const [showCheckout, setShowCheckout] = React.useState(false);
+  const [checkoutSuccess, setCheckoutSuccess] = React.useState(false);
+
+
+  // Calculate total amount for all products in the cart
+  const calculateTotalAmount = () => {
+    return cart.reduce((total, item) => total + item.quantity * parseFloat(item.cost.replace('$', '')), 0);
+  };
+
+  const handleContinueShopping = () => {
+    // e.preventDefault();
+    onContinueShopping();
+  };
+
+  const handleIncrement = (item) => {
+    dispatch(updateQuantity({ name: item.name, quantity: item.quantity + 1 }));
+  };
+
+  const handleDecrement = (item) => {
+    if (item.quantity > 1) {
+      dispatch(updateQuantity({ name: item.name, quantity: item.quantity - 1 }));
+    } else {
+      dispatch(removeItem(item.name));
+    }
+  };
+
+  const handleRemove = (item) => {
+    dispatch(removeItem(item.name));
+  };
+
+  const handleCheckout = () => {
+    setShowCheckout(true);
+  };
+
+  const handleConfirmCheckout = () => {
+    dispatch(clearCart());
+    setShowCheckout(false);
+    setCheckoutSuccess(true);
+    setTimeout(() => setCheckoutSuccess(false), 3000); // Hide after 3s
+  };
+
+  // Calculate total cost based on quantity for an item
+  const calculateTotalCost = (item) => {
+    return (item.quantity * parseFloat(item.cost.replace('$', ''))).toFixed(2);
+  };
+
   return (
-    <div className="about-us-container">
-      {/* <h1 className="about-us-heading">About Us</h1> */}
-      <p className="about-us-description">Welcome to Paradise Nursery, where green meets serenity!</p>
-      <p className="about-us-content">
-        At Paradise Nursery, we are passionate about bringing nature closer to you. Our mission is to provide a wide range of 
-        high-quality plants that not only enhance the beauty of your surroundings but also contribute to a healthier and 
-        more sustainable lifestyle. From air-purifying plants to aromatic fragrant ones, we have something for every 
-        plant enthusiast.
-      </p>
-      {/* <p className="plant_logo_left"><img src="https://p1.hiclipart.com/preview/922/979/640/green-leaf-logo-emoji-seedling-emoticon-sticker-plant-plant-stem-flower-png-clipart-thumbnail.jpg" height='50px' width='50px' alt="" /></p> */}
-      <p className="about-us-content">
-        Our team of experts is dedicated to ensuring that each plant meets our strict standards of quality and care. 
-        Whether you're a seasoned gardener or just starting your green journey, we're here to support you every step of 
-        the way. Feel free to explore our collection, ask questions, and let us help you find the perfect plant for your 
-        home or office.
-      </p>
-      {/* <p className="plant_logo_right"><img src="https://p1.hiclipart.com/preview/922/979/640/green-leaf-logo-emoji-seedling-emoticon-sticker-plant-plant-stem-flower-png-clipart-thumbnail.jpg" height='50px' width='50px' alt="" /></p> */}
+      <div className="cart-container">
+        <h2 style={{ color: 'black' }}>Total Cart Amount: ${calculateTotalAmount().toFixed(2)}</h2>
+        {checkoutSuccess && (
+          <div style={{ color: 'green', fontWeight: 'bold', marginBottom: '10px' }}>
+            Checkout successful! Thank you for your purchase.
+          </div>
+        )}
+        <div>
+          <div>
+            {cart.map(item => (
+              <div className="cart-item" key={item.name}>
+                <img className="cart-item-image" src={item.image} alt={item.name} />
+                <div className="cart-item-details">
+                  <div className="cart-item-name">{item.name}</div>
+                  <div className="cart-item-cost">Price: {item.cost}</div>
+                  <div className="cart-item-quantity">
+                    <button className="cart-item-button" onClick={() => handleDecrement(item)}>-</button>
+                    <span className="cart-item-quantity-value">{item.quantity}</span>
+                    <button className="cart-item-button" onClick={() => handleIncrement(item)}>+</button>
+                  </div>
+                  <div className="cart-item-total">Total: ${(item.quantity * parseFloat(item.cost.replace('$', ''))).toFixed(2)}</div>
+                  <button className="cart-item-delete" onClick={() => handleRemove(item)}>Remove</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginTop: '20px', color: 'black' }} className='total_cart_amount'></div>
+        <div className="continue_shopping_btn">
+          <button className="get-started-button" onClick={handleContinueShopping}>Continue Shopping</button>
+          <br />
+          <button
+            className="get-started-button1"
+            onClick={handleCheckout}
+            disabled={cart.length === 0}
+          >
+            Checkout
+          </button>
+        </div>
+        {showCheckout && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+          }}>
+            <div style={{ background: 'white', padding: 30, borderRadius: 10, minWidth: 300, textAlign: 'center' }}>
+              <h2>Order Summary</h2>
+              <ul style={{ textAlign: 'left', marginBottom: 20 }}>
+                {cart.map(item => (
+                  <li key={item.name}>
+                    {item.name} x {item.quantity} = ${(item.quantity * parseFloat(item.cost.replace('$', ''))).toFixed(2)}
+                  </li>
+                ))}
+              </ul>
+              <div style={{ marginBottom: 20, fontWeight: 'bold' }}>
+                Total: ${calculateTotalAmount().toFixed(2)}
+              </div>
+              <button
+                className="get-started-button1"
+                onClick={handleConfirmCheckout}
+                style={{ marginRight: 10 }}
+              >
+                Confirm Checkout
+              </button>
+              <button
+                className="get-started-button"
+                onClick={() => setShowCheckout(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
-      <p className="about-us-content">
-        Join us in our mission to create a greener, healthier world. Visit Paradise Nursery today and experience the 
-        beauty of nature right at your doorstep.
-      </p>
-    </div>
-  );
-}
-
-export default AboutUs;
+export default CartItem;
